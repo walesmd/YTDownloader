@@ -3,6 +3,7 @@
 import os
 import yt_dlp
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 
 DEST_DIR = "./downloads"
 MAX_WORKERS = 4
@@ -62,7 +63,20 @@ def get_metadata(ydl_object: yt_dlp.YoutubeDL):
         "author_url": ydl_object.get("uploader_url"),
         "duration_seconds": ydl_object.get("duration"),
         "video_url": ydl_object.get("webpage_url"),
+        "video_published_at": normalize_timestamp(ydl_object.get("upload_date")),
     }
+
+def normalize_timestamp(ts: str):
+    "Upload date is in YYYYMMDD format, normalize to ISO YYYY-MM-DD"
+    video_published_at = ts
+
+    if ts and len(ts) == 8:
+        try:
+            video_published_at = datetime.strptime(ts, "%Y%m%d").date().isoformat()
+        except ValueError:
+            return video_published_at
+
+    return video_published_at
 
 if __name__ == "__main__":
     if not os.path.exists(DEST_DIR):
@@ -72,7 +86,7 @@ if __name__ == "__main__":
 
     urls = [
         "https://www.youtube.com/watch?v=EeJ8n5PxFGE",
-        "https://www.youtube.com/watch?v=2lAe1cqCOXo"
+        # "https://www.youtube.com/watch?v=2lAe1cqCOXo"
     ]
 
     for url in urls:
