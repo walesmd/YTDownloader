@@ -34,6 +34,7 @@ class ThreadPoolManager:
         return results
 
 def download_video(url: str, output_path: str = DEST_DIR):
+    "Download a YouTube video and return its metadata."
     try:
         metadata = {}
         ydl_opts = {
@@ -56,6 +57,7 @@ def download_video(url: str, output_path: str = DEST_DIR):
         return {"url": url, "error": str(e)}
 
 def get_metadata(ydl_object: yt_dlp.YoutubeDL):
+    "Extract relevant metadata from the yt_dlp object."
     return {
         "id": ydl_object.get("id"),
         "title": ydl_object.get("title"),
