@@ -37,19 +37,14 @@ def download_video(url: str, output_path: str = DEST_DIR):
         metadata = {}
         ydl_opts = {
             "format": "best",
-            "outtmpl": os.path.join(output_path, "%(title)s.%(ext)s"),
+            "outtmpl": os.path.join(output_path, "%(id)s.%(ext)s"),
             "quiet": True,
             "no_warnings": True
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download = True)
-
-            metadata["title"] = info.get("title")
-            metadata["author"] = info.get("uploader")
-            metadata["author_url"] = info.get("uploader_url")
-            metadata["duration_seconds"] = info.get("duration")
-            metadata["video_url"] = url
+            ydl_object = ydl.extract_info(url, download = True)
+            metadata = get_metadata(ydl_object)
 
             print(f"Download: {metadata['title']}")
 
@@ -58,6 +53,16 @@ def download_video(url: str, output_path: str = DEST_DIR):
     except Exception as e:
         print(f"Error downloading video: {e}")
         return {"url": url, "error": str(e)}
+
+def get_metadata(ydl_object: yt_dlp.YoutubeDL):
+    return {
+        "id": ydl_object.get("id"),
+        "title": ydl_object.get("title"),
+        "author": ydl_object.get("uploader"),
+        "author_url": ydl_object.get("uploader_url"),
+        "duration_seconds": ydl_object.get("duration"),
+        "video_url": ydl_object.get("webpage_url"),
+    }
 
 if __name__ == "__main__":
     if not os.path.exists(DEST_DIR):
