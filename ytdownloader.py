@@ -2,10 +2,12 @@
 
 import os
 import yt_dlp
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 DEST_DIR = "./downloads"
+DB_FILE = "workloads.db"
 MAX_WORKERS = 4
 
 class ThreadPoolManager:
@@ -36,6 +38,8 @@ class ThreadPoolManager:
 def download_video(url: str, output_path: str = DEST_DIR):
     "Download a YouTube video and return its metadata."
     try:
+        started_at = datetime.utcnow().isoformat()  #TODO: deprecated utcnow()
+
         metadata = {}
         ydl_opts = {
             "format": "best",
@@ -47,6 +51,9 @@ def download_video(url: str, output_path: str = DEST_DIR):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl_object = ydl.extract_info(url, download = True)
             metadata = get_metadata(ydl_object)
+
+            completed_at = datetime.utcnow().isoformat() #TODO: deprecated utcnow()
+            insert_or_update_workload(metadata, started_at, completed_at)
 
             print(f"Download: {metadata['title']}")
 
@@ -67,6 +74,41 @@ def get_metadata(ydl_object: yt_dlp.YoutubeDL):
         "video_url": ydl_object.get("webpage_url"),
         "video_published_at": normalize_timestamp(ydl_object.get("upload_date")),
     }
+
+def insert_or_update_workload(metadata: dict, started_at: None, completed_at: None):
+    "Insert or update the workload record in the database."
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO workloads (
+            id, title, author, author_url, duration_seconds,
+            video_url, video_published_at, download_started_at, download_completed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+            title = excluded.title,
+            author = excluded.author,
+            author_url = excluded.author_url,
+            duration_seconds = excluded.duration_seconds,
+            video_url = excluded.video_url,
+            video_published_at = COALESCE(excluded.video_published_at, workloads.download_started_at),
+            download_started_at = COALESCE(excluded.download_started_at, workloads.download_started_at)
+        """, (
+            metadata.get("id"),
+            metadata.get("title"),
+            metadata.get("author"),
+            metadata.get("author_url"),
+            metadata.get("duration_seconds"),
+            metadata.get("video_url"),
+            metadata.get("video_published_at"),
+            started_at,
+            completed_at
+        ))
+    
+    conn.commit()
+    conn.close()
+            
+
 
 def normalize_timestamp(ts: str):
     "Upload date is in YYYYMMDD format, normalize to ISO YYYY-MM-DD"
