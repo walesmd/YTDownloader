@@ -1,9 +1,36 @@
 #!/usr/bin/env python
 
-import yt_dlp
 import os
+import yt_dlp
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 DEST_DIR = "./downloads"
+MAX_WORKERS = 4
+
+class ThreadPoolManager:
+    """
+    Thread pool manager for concurrent YouTube downloads.
+    """
+
+    def __init__(self, max_workers: int = MAX_WORKERS):
+        self.executor = ThreadPoolExecutor(max_workers = max_workers)
+        self.futures = []
+
+    def add_task(self, url: str, output_path: str = DEST_DIR):
+        """Submit a video download task to the pool."""
+        future = self.executor.submit(download_video, url, output_path)
+        self.futures.append(future)
+
+    def wait_for_completion(self):
+        """Wait for all tasks to complete and return results."""
+        results = []
+        for future in as_completed(self.futures):
+            try:
+                results.append(future.result())
+            except Exception as e:
+                results.append({"url": None, "error": str(e)})
+
+        return results
 
 def download_video(url: str, output_path: str = DEST_DIR):
     try:
@@ -32,16 +59,21 @@ def download_video(url: str, output_path: str = DEST_DIR):
         print(f"Error downloading video: {e}")
         return {"url": url, "error": str(e)}
 
-
 if __name__ == "__main__":
     if not os.path.exists(DEST_DIR):
         os.makedirs(DEST_DIR)
 
+    downloader = ThreadPoolManager(max_workers = MAX_WORKERS)
 
     urls = [
         "https://www.youtube.com/watch?v=EeJ8n5PxFGE",
         "https://www.youtube.com/watch?v=2lAe1cqCOXo"
     ]
 
-    video_url = urls[0]
-    download_video(video_url)
+    for url in urls:
+        downloader.add_task(url)
+
+    all_results = downloader.wait_for_completion()
+    print("\nSummary of downloads:")
+    for result in all_results:
+        print(result)
