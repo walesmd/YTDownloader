@@ -36,6 +36,7 @@ class ThreadPoolManager:
 
         return results
 
+
 def download_video(url: str, output_path: str = DEST_DIR):
     "Download a YouTube video and return its metadata."
     try:
@@ -64,6 +65,7 @@ def download_video(url: str, output_path: str = DEST_DIR):
         print(f"Error downloading video: {e}")
         return {"url": url, "error": str(e)}
 
+
 def get_metadata(ydl_object: yt_dlp.YoutubeDL):
     "Extract relevant metadata from the yt_dlp object."
     return {
@@ -76,6 +78,7 @@ def get_metadata(ydl_object: yt_dlp.YoutubeDL):
         "video_published_at": normalize_timestamp(ydl_object.get("upload_date")),
     }
 
+
 def normalize_timestamp(ts: str):
     "Upload date is in YYYYMMDD format, normalize to ISO YYYY-MM-DD"
     video_published_at = ts
@@ -87,6 +90,7 @@ def normalize_timestamp(ts: str):
             return video_published_at
 
     return video_published_at
+
 
 if __name__ == "__main__":
     if not os.path.exists(DEST_DIR):
