@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DB_BACKEND = os.getenv("DB_BACKEND", "sqlite").lower()
-DB_FILE = os.getenv("DB_FILE", "videos.db")
+DB_FILE = os.getenv("DB_FILE", "workloads.db")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
