@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import random
 import yt_dlp
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -9,6 +10,7 @@ from db import insert_or_update_workload
 DEST_DIR = "./downloads"
 DB_FILE = "workloads.db"
 MAX_WORKERS = 4
+SEARCH_KEYWORDS = ["music", "news", "gaming", "science", "funny", "travel", "sports", "art"]
 
 class ThreadPoolManager:
     """
@@ -52,7 +54,6 @@ def download_video(url: str, output_path: str = DEST_DIR):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl_object = ydl.extract_info(url, download = True)
             metadata = get_metadata(ydl_object)
-            # metadata["recommendations"] = get_recommended_video_metadata(metadata["related_videos"])
 
             completed_at = datetime.utcnow().isoformat() #TODO: deprecated utcnow()
             insert_or_update_workload(metadata, started_at, completed_at)
@@ -79,6 +80,19 @@ def get_metadata(ydl_object: yt_dlp.YoutubeDL):
     }
 
 
+def get_random_video_from_search(query: str, limit: int = 10):
+    "Search YouTube and return a random video from the results."
+    search_url = f"ytsearch{limit}:{query}"
+
+    with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
+        info = ydl.extract_info(search_url, download = False)
+        entries = info.get("entries", [])
+        if not entries:
+            return None
+        
+        return random.choice(entries)
+
+
 def normalize_timestamp(ts: str):
     "Upload date is in YYYYMMDD format, normalize to ISO YYYY-MM-DD"
     video_published_at = ts
@@ -99,9 +113,17 @@ if __name__ == "__main__":
     downloader = ThreadPoolManager(max_workers = MAX_WORKERS)
 
     urls = [
-        "https://www.youtube.com/watch?v=EeJ8n5PxFGE",
+        # "https://www.youtube.com/watch?v=EeJ8n5PxFGE",
         # "https://www.youtube.com/watch?v=2lAe1cqCOXo"
     ]
+
+    # No URLs provided, fetch random videos based on search keywords
+    if not urls:
+        print("No URLs provided, fetching random videos based on search keywords...")
+        video = get_random_video_from_search(random.choice(SEARCH_KEYWORDS))
+        if video:
+            urls.append(f"https://www.youtube.com/watch?v={video['id']}")
+            print(f"Discovered random video: {video['title']} ({urls[-1]})")
 
     for url in urls:
         downloader.add_task(url)
