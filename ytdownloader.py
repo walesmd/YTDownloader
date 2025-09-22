@@ -2,7 +2,6 @@
 
 import os
 import yt_dlp
-import sqlite3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from db import insert_or_update_workload
@@ -53,6 +52,7 @@ def download_video(url: str, output_path: str = DEST_DIR):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl_object = ydl.extract_info(url, download = True)
             metadata = get_metadata(ydl_object)
+            # metadata["recommendations"] = get_recommended_video_metadata(metadata["related_videos"])
 
             completed_at = datetime.utcnow().isoformat() #TODO: deprecated utcnow()
             insert_or_update_workload(metadata, started_at, completed_at)
